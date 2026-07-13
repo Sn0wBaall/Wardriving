@@ -9,7 +9,6 @@ import signal, os, sys, sqlite3
 
 try:
     from rich.console import Console
-    from rich.panel import Panel
     from rich.table import Table
     from rich import box
     from termcolor import colored

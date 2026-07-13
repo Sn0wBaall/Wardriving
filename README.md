@@ -13,16 +13,19 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python3 wardriving.py <database_file>
+python3 wardriving.py
 ```
 
-### Filter by network type
+The script will first show a list of `.sqlite`/`.db` files found in the current directory. Then enter the full path to your database when prompted.
 
-| Key | Technology | Description |
+Next, select a network type from the interactive menu:
+
+| Parameter | Technology | Description |
 | :---: | :--- | :--- |
+| **\*** | All | All network types |
 | **W** | Wi-Fi | Standard wireless networks |
-| **E** | BLE | Bluetooth Low Energy |
-| **B** | Bluetooth | Bluetooth devices |
+| **E** | BLE | Bluetooth Low Energy devices |
+| **B** | Bluetooth | Bluetooth Classic devices |
 | **A** | GSM/CDMA | Cellular network technologies |
 
 > [!IMPORTANT]

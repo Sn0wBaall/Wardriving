@@ -72,8 +72,8 @@ while True:
     connection = sqlite3.connect(db)
     cursor = connection.cursor()
 
-    networks_list = ['All','Wi-Fi', 'BLE', 'Bluetooth', 'GSM/CDMA']
-    parameters = ['*', 'W', 'E', 'B', 'A']
+    networks_list = ('All','Wi-Fi', 'BLE', 'Bluetooth', 'GSM/CDMA')
+    parameters = ('*', 'W', 'E', 'B', 'A')
 
     network_info = Table(border_style="white")
     network_info.add_column('Network', style='red')

@@ -13,6 +13,7 @@ try:
     from rich.table import Table
     from rich import box
     from termcolor import colored
+    from pathlib import Path
 except ImportError as e:
     print()
     print(f"[-] Libraries can't be imported\n[i] {e}\n")
@@ -21,6 +22,21 @@ except ImportError as e:
 def signal_handler(key, frame):
     print(f"{colored('[', 'white')}{colored(' EXIT ', 'white', 'on_red', attrs=['bold'])}{colored(']', 'white')}")
     sys.exit(1)
+
+def databases():
+
+    extensions = ('.sqlite', '.db')
+
+    file_list = [f.name for f in Path('.').iterdir() if f.suffix in extensions]
+    
+    db_table = Table(border_style='white')
+    db_table.add_column('Databases', style='cyan')
+    
+    for file in file_list:
+        
+        db_table.add_row(file)
+
+    console.print(db_table)
 
 def clean_text(s):
     if s is None:
@@ -57,6 +73,7 @@ os.system("clear")
 
 print(colored(BANNER, 'green', attrs=['bold']))
 console.print(info)
+databases()
 
 while True:
     print()

@@ -19,7 +19,7 @@ except ImportError as e:
     sys.exit(1)
 
 def signal_handler(key, frame):
-    print(f"{colored('[', 'white')}{colored(' EXIT ', 'white', 'on_red', attrs=['bold'])}{colored(']', 'white')}")
+    print(f"\n{colored('[', 'white')}{colored(' EXIT ', 'white', 'on_red', attrs=['bold'])}{colored(']', 'white')}")
     sys.exit(1)
 
 def databases():
@@ -160,7 +160,8 @@ while True:
         table.add_column('BSSID', style='magenta')
         table.add_column('SSID', style='green')
         table.add_column('Capabilities', style='yellow')
-        table.add_column('Type', justify='center')
+        table.add_column('Type', justify='center', style='blue')
+
 
         for row in results:
             table.add_row(

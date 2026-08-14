@@ -42,6 +42,31 @@ def clean_text(s):
         return ""
     return str(s).replace('\x00', '')
 
+NETWORK_TYPES = (
+    ('All', '*'),
+    ('Wi-Fi', 'W'),
+    ('BLE', 'E'),
+    ('Bluetooth', 'B'),
+    ('GSM', 'G'),
+    ('CDMA', 'C'),
+    ('LTE', 'L'),
+    ('WCDMA', 'D'),
+    ('5G NR', 'N'),
+    ('NFC', 'F'),
+)
+
+def networks_amount(cursor):
+
+    codes = tuple(code for _, code in NETWORK_TYPES[1:])
+
+    placeholders = ','.join('?' for _ in codes)
+
+    query = f"SELECT type, count(DISTINCT ssid) FROM network WHERE type IN ({placeholders}) AND ssid != '' GROUP BY type"
+
+    cursor.execute(query, codes)
+
+    return dict(cursor.fetchall())
+
 signal.signal(signal.SIGINT, signal_handler)
 
 console = Console()
@@ -88,19 +113,20 @@ while True:
     connection = sqlite3.connect(db)
     cursor = connection.cursor()
 
-    networks_list = ('All','Wi-Fi', 'BLE', 'Bluetooth', 'GSM/CDMA')
-    parameters = ('*', 'W', 'E', 'B', 'A')
-
     network_info = Table(border_style="white")
     network_info.add_column('Network', style='red')
     network_info.add_column('Type', style='green')
+    network_info.add_column('Amount', style='green')
+
+    amounts = networks_amount(cursor)
 
     database = Table(border_style="white")
     database.add_column('Database', style='cyan')
     database.add_row(db)
 
-    for n, p in zip(networks_list, parameters):
-        network_info.add_row(n, p)
+    for name, code in NETWORK_TYPES:
+        amount = sum(amounts.values()) if code == '*' else amounts.get(code, 0)
+        network_info.add_row(name, code, str(amount))
 
     while True:
         console.print(network_info)

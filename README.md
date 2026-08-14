@@ -26,7 +26,12 @@ Next, select a network type from the interactive menu:
 | **W** | Wi-Fi | Standard wireless networks |
 | **E** | BLE | Bluetooth Low Energy devices |
 | **B** | Bluetooth | Bluetooth Classic devices |
-| **A** | GSM/CDMA | Cellular network technologies |
+| **G** | GSM | GSM cellular networks |
+| **C** | CDMA | CDMA cellular networks |
+| **L** | LTE | LTE cellular networks |
+| **D** | WCDMA | WCDMA cellular networks |
+| **N** | NR | 5G NR cellular networks |
+| **F** | NFC | NFC tags |
 
 > [!IMPORTANT]
 > If your database contains many devices, some may not be displayed due to terminal limits. Additionally, devices with an empty SSID field are automatically hidden to keep the output clean.

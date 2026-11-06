@@ -1,176 +1,129 @@
 #!/usr/bin/env python3
+"""Interactive viewer for WiGLE SQLite network databases."""
 
-#    --------------------------------------------------
-#   |      Author: Sn0wBaall                           |
-#   |      Github: https://github.com/Sn0wBaall        |
-#    --------------------------------------------------
+import argparse
+import sqlite3
+import sys
+from contextlib import closing
+from pathlib import Path
 
-import signal, os, sys, sqlite3
+from rich.console import Console
+from rich.table import Table
 
-try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich import box
-    from termcolor import colored
-    from pathlib import Path
-except ImportError as e:
-    print()
-    print(f"[-] Libraries can't be imported\n[i] {e}\n")
-    sys.exit(1)
+from networks import NETWORK_TYPES, network_counts, networks
 
-def signal_handler(key, frame):
-    print(f"\n{colored('[', 'white')}{colored(' EXIT ', 'white', 'on_red', attrs=['bold'])}{colored(']', 'white')}")
-    sys.exit(1)
-
-def databases():
-
-    extensions = ('.sqlite', '.db')
-
-    file_list = [f.name for f in Path('.').iterdir() if f.suffix in extensions]
-    
-    db_table = Table(border_style='white')
-    db_table.add_column('Databases', style='cyan')
-    
-    for file in file_list:
-        
-        db_table.add_row(file)
-
-    console.print(db_table)
-
-def clean_text(s):
-    if s is None:
-        return ""
-    return str(s).replace('\x00', '')
-
-NETWORK_TYPES = (
-    ('All', '*'),
-    ('Wi-Fi', 'W'),
-    ('BLE', 'E'),
-    ('Bluetooth', 'B'),
-    ('GSM', 'G'),
-    ('CDMA', 'C'),
-    ('LTE', 'L'),
-    ('WCDMA', 'D'),
-    ('5G NR', 'N'),
-    ('NFC', 'F'),
-)
-
-def networks_amount(cursor):
-
-    codes = tuple(code for _, code in NETWORK_TYPES[1:])
-
-    placeholders = ','.join('?' for _ in codes)
-
-    query = f"SELECT type, count(DISTINCT ssid) FROM network WHERE type IN ({placeholders}) AND ssid != '' GROUP BY type"
-
-    cursor.execute(query, codes)
-
-    return dict(cursor.fetchall())
-
-signal.signal(signal.SIGINT, signal_handler)
 
 console = Console()
 
-BANNER = r'''
-$$\      $$\ $$\   $$\                 $$\           $$\            $$\                     
-$$ | $\  $$ |$$ |  $$ |                $$ |        $$$$ |           \__|                    
-$$ |$$$\ $$ |$$ |  $$ | $$$$$$\   $$$$$$$ | $$$$$$\\_$$ |$$\    $$\ $$\ $$$$$$$\   $$$$$$\  
-$$ $$ $$\$$ |$$$$$$$$ |$$  __$$\ $$  __$$ |$$  __$$\ $$ |\$$\  $$  |$$ |$$  __$$\ $$  __$$\ 
-$$$$  _$$$$ |\_____$$ |$$ |  \__|$$ /  $$ |$$ |  \__|$$ | \$$\$$  / $$ |$$ |  $$ |$$ /  $$ |
-$$$  / \$$$ |      $$ |$$ |      $$ |  $$ |$$ |      $$ |  \$$$  /  $$ |$$ |  $$ |$$ |  $$ |
-$$  /   \$$ |      $$ |$$ |      \$$$$$$$ |$$ |    $$$$$$\  \$  /   $$ |$$ |  $$ |\$$$$$$$ |
-\__/     \__|      \__|\__|       \_______|\__|    \______|  \_/    \__|\__|  \__| \____$$ |
-                                                                                  $$\   $$ |
-                                                                                  \$$$$$$  |
-                                                                                   \______/ 
-'''
 
-info = Table(border_style="white", box=box.ROUNDED, show_header=False, width=50)
+def available_databases() -> None:
+    files = sorted(
+        (
+            path
+            for path in Path.cwd().iterdir()
+            if path.is_file() and path.suffix.lower() in {".db", ".sqlite"}
+        ),
+        key=lambda path: path.name.lower(),
+    )
+    if files:
+        console.print(
+            "Databases in the current directory: " + ", ".join(path.name for path in files),
+            markup=False,
+        )
 
-info.add_column("Key", style="bold red", width=12)
-info.add_column("Value", style="cyan")
 
-info.add_row('Author', 'Sn0wBaall')
-info.add_row('Github', 'https://github.com/Sn0wBaall')
-
-os.system("clear")
-
-print(colored(BANNER, 'green', attrs=['bold']))
-console.print(info)
-databases()
-
-while True:
-    print()
-    db = input(f"{colored('>>', 'blue', attrs=['bold'])} {colored('Enter the full path of your database', 'white')}\n {colored('>>', 'magenta', attrs=['bold'])} ")
-
-    if not os.path.isfile(db):
-        print(f"{colored('>>', 'red', attrs=['bold'])} {colored('File doesn\'t exist', 'white', 'on_red', attrs=['bold'])} {colored('<<', 'red', attrs=['bold'])}")
-        print()
-        continue
-
-    print()
-
-    connection = sqlite3.connect(db)
-    cursor = connection.cursor()
-
-    network_info = Table(border_style="white")
-    network_info.add_column('Network', style='red')
-    network_info.add_column('Type', style='green')
-    network_info.add_column('Amount', style='green')
-
-    amounts = networks_amount(cursor)
-
-    database = Table(border_style="white")
-    database.add_column('Database', style='cyan')
-    database.add_row(db)
-
-    for name, code in NETWORK_TYPES:
-        amount = sum(amounts.values()) if code == '*' else amounts.get(code, 0)
-        network_info.add_row(name, code, str(amount))
-
+def select_database() -> Path | None:
     while True:
-        console.print(network_info)
-        console.print(database)
+        name = input("Database path (q to quit): ").strip()
+        if name.lower() == "q":
+            return None
+        path = Path(name).expanduser()
+        if path.is_file():
+            return path
+        console.print("[red]File not found. Enter the path to a SQLite database.[/red]")
 
-        print()
-        
-        network_type = input(f"{colored('>>', 'blue', attrs=['bold'])} {colored('Which network type do you want to view?', 'white')}\n {colored('>>', 'magenta', attrs=['bold'])} ")
-        
-        if network_type == "":
-            print(f"{colored('>>', 'red', attrs=['bold'])} {colored('Invalid option', 'white', 'on_red', attrs=['bold'])} {colored('<<', 'red', attrs=['bold'])}")
-            print()
+
+def show_summary(counts: dict[str, int], path: Path) -> None:
+    console.print(f"Database: {path}", style="cyan", markup=False)
+    table = Table(title="Network summary", title_style="bold cyan", border_style="blue")
+    table.add_column("Technology", style="cyan", header_style="bold cyan")
+    table.add_column("Code", style="magenta", header_style="bold magenta")
+    table.add_column("Unique SSIDs", justify="right", style="green", header_style="bold green")
+    table.add_row("All", "*", str(sum(counts.values())), style="bold")
+    for name, code in NETWORK_TYPES:
+        table.add_row(name, code, str(counts.get(code, 0)))
+    console.print(table)
+
+
+def show_networks(connection: sqlite3.Connection, code: str) -> None:
+    rows = networks(connection, code)
+    if not rows:
+        console.print("[yellow]No networks found for that selection.[/yellow]")
+        return
+
+    table = Table(title=f"Networks · {code}", title_style="bold cyan", border_style="blue")
+    for column, color in (
+        ("BSSID", "magenta"),
+        ("SSID", "green"),
+        ("Capabilities", "yellow"),
+        ("Type", "cyan"),
+    ):
+        table.add_column(column, style=color, header_style=f"bold {color}")
+    for row in rows:
+        table.add_row(*(str(value).replace("\x00", "") if value is not None else "" for value in row))
+    console.print(table)
+
+
+def browse(path: Path) -> None:
+    # Read-only mode prevents accidentally creating or modifying a database.
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
+        counts = network_counts(connection)
+        valid_codes = {code for _, code in NETWORK_TYPES} | {"*"}
+        while True:
+            show_summary(counts, path)
+            choice = input("Type code (* for all, back to change database, q to quit): ").strip().upper()
+            if choice == "BACK":
+                return
+            elif choice == "Q":
+                raise SystemExit(0)
+            elif choice in valid_codes:
+                show_networks(connection, choice)
+            else:
+                console.print("[red]Invalid type. Enter a code from the table, 'back', or 'q'.[/red]")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Browse networks in a WiGLE SQLite database.")
+    parser.add_argument("database", nargs="?", type=Path, help="database path (prompts if omitted)")
+    args = parser.parse_args(argv)
+    console.print("[bold green]Wardriving[/bold green] · WiGLE database viewer")
+    if args.database is None:
+        available_databases()
+
+    path = args.database.expanduser() if args.database else None
+    while True:
+        if path is None:
+            path = select_database()
+            if path is None:
+                return 0
+        if not path.is_file():
+            console.print(f"File not found: {path}", style="red", markup=False)
+            if args.database:
+                return 1
+            path = None
             continue
-        
-        query = "SELECT bssid, ssid, capabilities, type FROM network WHERE ssid != '' "
-
-        if network_type and network_type != '*':
-            query += f"AND type = '{network_type}' "
-        
-        query += "GROUP BY ssid"
-
-        cursor.execute(query)
-        results = cursor.fetchall()
-
-        if not results:
-            print(f" {colored('>>', 'red')} {colored('No networks of this type were found', 'white', 'on_red', attrs=['bold'])} {colored('<<', 'red')}")
-            print() 
-            continue
-
-        table = Table(style="white")
-        table.add_column('BSSID', style='magenta')
-        table.add_column('SSID', style='green')
-        table.add_column('Capabilities', style='yellow')
-        table.add_column('Type', justify='center', style='blue')
+        try:
+            browse(path)
+        except sqlite3.DatabaseError as exc:
+            console.print(f"Cannot read {path}: {exc}", style="red", markup=False)
+            if args.database:
+                return 1
+        path = None
 
 
-        for row in results:
-            table.add_row(
-                clean_text(row[0]),
-                clean_text(row[1]),
-                clean_text(row[2]),
-                clean_text(row[3])
-            )
-
-        console.print(table)
-
-    connection.close()
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (KeyboardInterrupt, EOFError):
+        console.print("\nGoodbye.")
+        sys.exit(0)

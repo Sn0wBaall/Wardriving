@@ -1,37 +1,46 @@
 # Wardriving
 
-A Python tool to visualize data collected with [WiGLE](https://wigle.net/). It lets you filter by network type (**Wi-Fi, GSM, Bluetooth, etc.**) and display details like BSSID, SSID, capabilities and network type in clean tables, making it easy to interpret directly from the terminal.
+A terminal viewer for network data stored in a [WiGLE](https://wigle.net/) SQLite database. Browse unique, nonempty SSIDs by technology and inspect their BSSID, capabilities and type. The database is opened **read-only**.
+
+## Requirements
+
+Python 3.10+ and a WiGLE-compatible SQLite database with a `network` table containing `bssid`, `ssid`, `capabilities` and `type` columns.
 
 ## Installation
 
 ```bash
 git clone https://github.com/Sn0wBaall/Wardriving.git
 cd Wardriving
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
 ## Usage
 
 ```bash
-python3 wardriving.py
+python wardriving.py /path/to/database.sqlite
+# Or omit the path to choose a database interactively:
+python wardriving.py
+python wardriving.py --help
 ```
 
-The script will first show a list of `.sqlite`/`.db` files found in the current directory. Then enter the full path to your database when prompted.
+The interactive mode lists `.sqlite` and `.db` files in the current directory, but accepts any database path. Enter a type code to see its networks, `*` for all supported types, `back` to choose another database, or `q` to exit.
 
-Next, select a network type from the interactive menu:
+| Code | Technology | Code | Technology |
+| :---: | --- | :---: | --- |
+| W | Wi-Fi | E | BLE |
+| B | Bluetooth | G | GSM |
+| C | CDMA | L | LTE |
+| D | WCDMA | N | 5G NR |
+| F | NFC | * | All supported types |
 
-| Parameter | Technology | Description |
-| :---: | :--- | :--- |
-| **\*** | All | All network types |
-| **W** | Wi-Fi | Standard wireless networks |
-| **E** | BLE | Bluetooth Low Energy devices |
-| **B** | Bluetooth | Bluetooth Classic devices |
-| **G** | GSM | GSM cellular networks |
-| **C** | CDMA | CDMA cellular networks |
-| **L** | LTE | LTE cellular networks |
-| **D** | WCDMA | WCDMA cellular networks |
-| **N** | NR | 5G NR cellular networks |
-| **F** | NFC | NFC tags |
+Counts represent distinct, nonempty SSIDs within each type. The detail view shows one representative row per SSID and type, sorted consistently; different devices sharing an SSID are not shown separately. Unsupported types and empty SSIDs are excluded. Large results may require scrolling in your terminal.
 
-> [!IMPORTANT]
-> If your database contains many devices, some may not be displayed due to terminal limits. Additionally, devices with an empty SSID field are automatically hidden to keep the output clean.
+## Tests
+
+Run the database tests with the Python standard library (no additional test dependencies):
+
+```bash
+python -m unittest discover -s tests -v
+```
